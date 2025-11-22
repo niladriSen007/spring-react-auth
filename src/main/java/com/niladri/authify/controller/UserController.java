@@ -5,10 +5,13 @@ import com.niladri.authify.service.AppUserDetailsService;
 import com.niladri.authify.service.JwtService;
 import com.niladri.authify.service.UserService;
 import com.niladri.authify.to.AuthRequest;
+import com.niladri.authify.to.AuthResponse;
 import com.niladri.authify.to.ProfileRequest;
 import com.niladri.authify.to.ProfileResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -20,6 +23,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+
+import java.time.Duration;
 
 @Slf4j
 @RestController
@@ -62,14 +67,22 @@ public class UserController {
     }
 
     @PostMapping("/generateToken")
-    public String authenticateAndGetToken(@RequestBody AuthRequest authRequest) {
+    public ResponseEntity<AuthResponse> authenticateAndGetToken(@RequestBody AuthRequest authRequest) docker {
         log.info("Generating token");
         try {
-            log.info(authRequest.password()+" "+authRequest.email());
+            log.info(authRequest.password() + " " + authRequest.email());
             Authentication authentication = authenticateUser(authRequest.email(), authRequest.password());
             if (authentication.isAuthenticated()) {
                 log.info("User authenticated");
-                return jwtService.generateToken(authRequest.email());
+                String jwtToken = jwtService.generateToken(authRequest.email());
+                ResponseCookie cookie = ResponseCookie.from("jwtToken", jwtToken)
+                        .httpOnly(true)
+                        .path("/")
+                        .maxAge(Duration.ofDays(1)) // 1 day
+                        .sameSite("Strict")
+                        .build();
+                return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString())
+                        .body(new AuthResponse(authRequest.email(), jwtToken));
             } else {
                 log.info("User not authenticated");
                 throw new UsernameNotFoundException("Invalid user request!");
