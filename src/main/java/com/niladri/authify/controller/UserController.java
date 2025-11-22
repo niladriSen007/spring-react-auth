@@ -17,6 +17,8 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.CurrentSecurityContext;
+import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -62,12 +64,16 @@ public class UserController {
     }
 
     @GetMapping("/profile")
-    public ResponseEntity<String> getProfile() {
-        return ResponseEntity.ok("This is a protected profile endpoint.");
+//    public ResponseEntity<ProfileResponse> getProfile(@CurrentSecurityContext Authentication authentication) {
+    public ResponseEntity<ProfileResponse> getProfile(@CurrentSecurityContext SecurityContext securityContext) {
+        log.info("User email from security context: {}", securityContext.getAuthentication().getName());
+        log.info("Context: {}", securityContext.getAuthentication().getName());
+        String email = securityContext.getAuthentication().getName();
+        return ResponseEntity.ok(userService.getUserProfile(email));
     }
 
     @PostMapping("/generateToken")
-    public ResponseEntity<AuthResponse> authenticateAndGetToken(@RequestBody AuthRequest authRequest) docker {
+    public ResponseEntity<AuthResponse> authenticateAndGetToken(@RequestBody AuthRequest authRequest) {
         log.info("Generating token");
         try {
             log.info(authRequest.password() + " " + authRequest.email());

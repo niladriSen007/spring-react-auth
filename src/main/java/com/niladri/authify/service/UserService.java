@@ -27,13 +27,20 @@ public class UserService {
         newUser.setName(profileRequest.name());
         newUser.setEmail(profileRequest.email());
         newUser.setRoles(profileRequest.roles());
-        newUser.setPassword(passwordEncoder.encode(profileRequest.password())); // In real applications, ensure to hash the password before saving
+        newUser.setPassword(passwordEncoder.encode(profileRequest.password())); // In real applications, ensure to hash
+                                                                                // the password before saving
         newUser.setAccountVerified(false);
 
         var savedUser = userRepository.save(newUser);
 
         log.info("Created new user with email: {}", savedUser.getEmail());
         return Mapper.mapToProfileResponse(savedUser);
+    }
+
+    public ProfileResponse getUserProfile(String email) {
+        var user = userRepository.findByEmail(email)
+                .orElseThrow(() -> new IllegalArgumentException("User with email " + email + " not found."));
+        return Mapper.mapToProfileResponse(user);
     }
 
     public User login(AuthRequest authRequest) {
