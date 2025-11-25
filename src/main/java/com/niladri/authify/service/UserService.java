@@ -28,7 +28,7 @@ public class UserService {
         newUser.setEmail(profileRequest.email());
         newUser.setRoles(profileRequest.roles());
         newUser.setPassword(passwordEncoder.encode(profileRequest.password())); // In real applications, ensure to hash
-                                                                                // the password before saving
+        // the password before saving
         newUser.setAccountVerified(false);
 
         var savedUser = userRepository.save(newUser);
@@ -43,11 +43,12 @@ public class UserService {
         return Mapper.mapToProfileResponse(user);
     }
 
-    public User login(AuthRequest authRequest) {
-        var user = userRepository.findByEmail(authRequest.email());
-        if (user.isEmpty() || !user.get().getPassword().equals(authRequest.password())) {
-            throw new IllegalArgumentException("Invalid email or password.");
-        }
-        return user.get();
-    }
+//    public User login(AuthRequest authRequest) {
+//        var user = userRepository.findByEmail(authRequest.email());
+//        log.info(user + "User details");
+//        if (user.isEmpty() || !user.get().getPassword().equals(authRequest.password())) {
+//            throw new IllegalArgumentException("Invalid email or password.");
+//        }
+//        return user.get();
+//    }
 }

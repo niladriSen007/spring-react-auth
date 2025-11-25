@@ -2,6 +2,7 @@ package com.niladri.authify.controller;
 
 import com.niladri.authify.models.User;
 import com.niladri.authify.service.AppUserDetailsService;
+import com.niladri.authify.service.EmailService;
 import com.niladri.authify.service.JwtService;
 import com.niladri.authify.service.UserService;
 import com.niladri.authify.to.AuthRequest;
@@ -36,6 +37,7 @@ public class UserController {
     private final AuthenticationManager authenticationManager;
     private final AppUserDetailsService appUserDetailsService;
     private final JwtService jwtService;
+    private final EmailService emailService;
 
     @PostMapping("/register")
     public ResponseEntity<ProfileResponse> createUser(@RequestBody ProfileRequest profileRequest) {
@@ -53,11 +55,18 @@ public class UserController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<User> loginUser(@RequestBody AuthRequest authRequest) {
+    public ResponseEntity<?> loginUser(@RequestBody AuthRequest authRequest) {
         try {
-            authenticateUser(authRequest.email(), authRequest.password());
-            UserDetails userDetails = appUserDetailsService.loadUserByUsername(authRequest.email());
-            return ResponseEntity.ok(userService.login(authRequest));
+            Authentication authentication = authenticateUser(authRequest.email(), authRequest.password());
+            if (authentication.isAuthenticated()) {
+                log.info("Logging in user");
+                UserDetails userDetails = appUserDetailsService.loadUserByUsername(authRequest.email());
+                emailService.sendEmail(userDetails.getUsername().toString());
+                return ResponseEntity.ok().body(userDetails);
+            } else {
+                log.info("User not authenticated while Login");
+                throw new UsernameNotFoundException("Invalid user request!");
+            }
         } catch (BadCredentialsException e) {
             throw new BadCredentialsException(e.getLocalizedMessage());
         }
@@ -70,6 +79,16 @@ public class UserController {
         log.info("Context: {}", securityContext.getAuthentication().getName());
         String email = securityContext.getAuthentication().getName();
         return ResponseEntity.ok(userService.getUserProfile(email));
+    }
+
+    @GetMapping("/is-authenticated")
+    public ResponseEntity<String> isAuthenticated(@CurrentSecurityContext SecurityContext securityContext) {
+        String email = securityContext.getAuthentication().getName();
+        log.info("Checking authentication for user: {}", email);
+        if(email == null || email.isEmpty()) {
+            return ResponseEntity.status(401).body("User is not authenticated.");
+        }
+        return ResponseEntity.ok("User " + email + " is authenticated.");
     }
 
     @PostMapping("/generateToken")
