@@ -1,17 +1,16 @@
 package com.niladri.authify.controller;
 
-import com.niladri.authify.models.User;
 import com.niladri.authify.service.AppUserDetailsService;
 import com.niladri.authify.service.EmailService;
 import com.niladri.authify.service.JwtService;
 import com.niladri.authify.service.UserService;
-import com.niladri.authify.to.AuthRequest;
-import com.niladri.authify.to.AuthResponse;
-import com.niladri.authify.to.ProfileRequest;
-import com.niladri.authify.to.ProfileResponse;
+import com.niladri.authify.to.*;
+import jakarta.servlet.http.HttpServletResponse;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -22,12 +21,11 @@ import org.springframework.security.core.annotation.CurrentSecurityContext;
 import org.springframework.security.core.context.SecurityContext;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Duration;
+import java.util.Map;
 
 @Slf4j
 @RestController
@@ -85,7 +83,7 @@ public class UserController {
     public ResponseEntity<String> isAuthenticated(@CurrentSecurityContext SecurityContext securityContext) {
         String email = securityContext.getAuthentication().getName();
         log.info("Checking authentication for user: {}", email);
-        if(email == null || email.isEmpty()) {
+        if (email == null || email.isEmpty()) {
             return ResponseEntity.status(401).body("User is not authenticated.");
         }
         return ResponseEntity.ok("User " + email + " is authenticated.");
@@ -116,6 +114,65 @@ public class UserController {
             log.error("Error during token generation: {}", e.getMessage());
             throw new BadCredentialsException("Invalid credentials!");
         }
+    }
+
+
+    @PostMapping("/send-reset-otp")
+    public void sendResetOtp(@RequestParam String email) {
+        try {
+            userService.sendResetOtp(email);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+    }
+
+    @PostMapping("/reset-password")
+    public void resetPassword(@Valid @RequestBody ResetPasswordRequest request) {
+        try {
+            userService.resetPassword(request.email(), request.otp(), request.newPassword());
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+    }
+
+    @PostMapping("/send-otp")
+    public void sendVerifyOtp(@CurrentSecurityContext SecurityContext securityContext) {
+        String email = securityContext.getAuthentication().getName();
+        try {
+            userService.sendOtp(email);
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+    }
+
+    @PostMapping("/verify-otp")
+    public void verifyEmail(@RequestBody Map<String, Object> request,
+                            @CurrentSecurityContext SecurityContext securityContext) {
+        String email = securityContext.getAuthentication().getName();
+        if (request.get("otp").toString() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Missing details");
+        }
+
+        try {
+            userService.verifyOtp(email, request.get("otp").toString());
+        } catch (Exception e) {
+            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, e.getMessage());
+        }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletResponse response) {
+        ResponseCookie cookie = ResponseCookie.from("jwt", "")
+                .httpOnly(true)
+                .secure(false)
+                .path("/")
+                .maxAge(0)
+                .sameSite("Strict")
+                .build();
+
+        return ResponseEntity.ok()
+                .header(HttpHeaders.SET_COOKIE, cookie.toString())
+                .body("Logged out successfully!");
     }
 
     private Authentication authenticateUser(String email, String password) {

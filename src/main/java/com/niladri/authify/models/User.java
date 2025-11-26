@@ -19,7 +19,6 @@ import java.time.LocalDateTime;
         }
 )
 public class User {
-    public String verifyOtp;
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -31,6 +30,7 @@ public class User {
     private String password;
     private boolean isAccountVerified;
     private String roles;
+    public String verifyOtp;
     private Long verifyOtpExpireAt;
     private String resetOtp;
     private Long resetOtpExpireAt;

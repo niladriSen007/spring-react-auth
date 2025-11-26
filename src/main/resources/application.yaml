@@ -1,3 +1,4 @@
+#  xsmtpsib-39dd2c3e067ef2c640bb6992f7766a2f0e2682c0e48048da9b4d8c735aa3f658-a08bzxeOsnbvryEv
 spring:
   application:
     name: authify
@@ -5,7 +6,7 @@ spring:
     host: smtp-relay.brevo.com
     port: 587
     username: 7dcd0d001@smtp-brevo.com
-    password: xsmtpsib-39dd2c3e067ef2c640bb6992f7766a2f0e2682c0e48048da9b4d8c735aa3f658-ffwkcqlpHHBpXQZA
+    password: jdkhgbfjkgvjhkdgkjsgkjghs
     properties:
       mail:
         smtp:
